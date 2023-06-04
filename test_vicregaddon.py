@@ -13,8 +13,11 @@ def wrapped_partial(func, *args, **kwargs):
     update_wrapper(partial_func, func)
     return partial_func
 
-def test_get_shifted_batches(output_size=4096, combine=False):
-    audio_long = torch.randn(5, 2, int(output_size*1.5))
+def test_get_shifted_batches(*args, **kwargs):
+    output_size=kwargs.get('output_size', 256) 
+    combine=kwargs.get('combine', False)
+    batch_size = kwargs.get('batch_size', 5)
+    audio_long = torch.randn(batch_size, 2, int(output_size*1.5))
     early, late = get_shifted_batches(audio_long, output_size, combine=combine)
     assert torch.equal(audio_long[:, :, :output_size], early)
     assert torch.equal(audio_long[:, :, -output_size:], late)
@@ -23,8 +26,11 @@ def test_get_shifted_batches(output_size=4096, combine=False):
 
 
 def test_VICRegLoss(*args, **kwargs):
+    batch_size = kwargs.get('batch_size', 5)
+    kwargs.pop('batch_size')
     loss_class = VICRegLoss(*args, **kwargs)
-    test_shape = (5, 32, 256)
+    test_shape = (batch_size, 32, 256)
+    # TODO: lock down the RNG for reproducibility
     inputs = {'latent': torch.randn(test_shape), 'latent2': torch.randn(test_shape)}
     new_inputs = loss_class.forward(inputs)
     vicreg_losses = {key:val for key, val in new_inputs.items() if 'vicreg' in key}
@@ -36,6 +42,7 @@ def test_VICRegLoss(*args, **kwargs):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test vicregaddon package',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--batch_size', type=int, default=5, help='batch size')
     parser.add_argument('--parallel', action='store_true', help='use multiple GPUs')
     args = parser.parse_args()
 
@@ -43,6 +50,6 @@ if __name__ == "__main__":
     score = 0
     for i, test in enumerate(tests):
         print(f"test {i+1}: {test.__name__}: ", end="")
-        score += test()
+        score += test(batch_size=args.batch_size)
 
     print(f"{score} out of {len(tests)} tests passed")
