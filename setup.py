@@ -9,10 +9,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'torch',
-        'torchaudio',
-        'tensordict,'
-        'numpy',
-        'aeiou',
-        'pytorch-lightning'
+        'einops,'
     ],
 )

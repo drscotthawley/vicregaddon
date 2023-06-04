@@ -1,6 +1,2 @@
 torch 
-torchaudio
-tensordict
-numpy 
-aeiou
-pytorch-lightning
+einops
