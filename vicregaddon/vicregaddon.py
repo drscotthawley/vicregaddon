@@ -13,7 +13,7 @@ from einops import rearrange, pack, unpack
 
 
 #---------------------------
-# 1. "data splitter" options
+# 1. "data splitter" options/routines
 #---------------------------
 def get_shifted_batches(audio_in:torch.Tensor, output_length=None, combine=False):
     """
@@ -29,12 +29,13 @@ def get_shifted_batches(audio_in:torch.Tensor, output_length=None, combine=False
     early = audio_in[..., :output_length]
     late = audio_in[..., -output_length:]
     if combine:
-        return torch.cat([early, late], dim=0)
+        return torch.cat([early, late], dim=0) # can undo via torch.chunk for 2 chunks
     else: 
         return early, late
 
+
 class DataSplitter(nn.Module):
-    "This is a more sophisticated data splitter than *can* split by time but can also apply affects, etc."
+    "This is a more sophisticated data splitter than *can* split by time but can also apply effects, etc."
     def __init__(self, 
                  output_length=None, # if not None, will try to split by time
                  effects_string='',  # string of list of names of valid aeiou.datasets augmentation routines
@@ -54,13 +55,15 @@ class DataSplitter(nn.Module):
 
 #---------------------------
 # 2. Projector model
+# This is a "fallback" model: users can supply their own to VICRegLoss() instead of this, 
+#   e.g., if they'd prefer one based on convolutions instead of Linear layers
 #---------------------------
 def VICRegProjector(
         flat_latent_dim=32*256,  # flattened dimension of the latent encoding space of autoencoder. (VICReg on images uses 2048 from 320x320 images)
         mlp_str="8192-8192-8192",  # default spec of MLP layers as per VICReg code
         ):
     """Fallback model if none specified by user. 
-    Adapted from FacebookResearch's VICReg code. Their LICENSE is below"""
+    (Slightly) Adapted from FacebookResearch's original VICReg code. Their LICENSE is below"""
     mlp_spec = f"{flat_latent_dim}-{mlp_str}" # string of sizes of MLP layers
     layers = []
     f = list(map(int, mlp_spec.split("-")))
@@ -102,7 +105,7 @@ class FullGatherLayer(torch.autograd.Function):
 
 
 # couple more utilities used by oobleck 
-TensorDict = Dict[str, torch.Tensor]
+TensorDict = Dict[str, torch.Tensor]  # not sure if this is the same as in tensordict package
 
 def accumulate_value(inputs: TensorDict, update: TensorDict):
     for k, v in update.items():
@@ -140,6 +143,7 @@ def vicreg_cov_loss(z:torch.Tensor):
     cov_z = torch.cov(rearrange(z, 'b c t -> ( c t ) b'))   
     return off_diagonal(cov_z).pow_(2).sum().div(num_features)
 
+
 # now a full class that does a lot of things for you
 class VICRegLoss(nn.Module):
     """
@@ -153,7 +157,7 @@ class VICRegLoss(nn.Module):
                 parallel=True, 
                 projector=None,  # projector model, e.g. multi-layer MLP. will fall back to default setup (see VICRegProjector, above) if None
                 # these next two are only applicable if projector is None;
-                flat_latent_dim=32*256, # = 8192 
+                flat_latent_dim=32*256, # = 8192, but doesn't have to match projector_mlp
                 projector_mlp="8192-8192-8192", # dims of projector layers. Using string API b/c that's what Meta did, and if it's good enough for Yann,...
                 debug=False,
                  ) -> None:
@@ -171,7 +175,7 @@ class VICRegLoss(nn.Module):
         print()
         y1, y2 = inputs['latent'], inputs['latent2'] # TODO: not married to these names
 
-        # TODO: do "something" to latents to make them emenable to Projector (linear layers), e.g for now, flatten (but not the batch dimension)
+        # prep for Projector.  If it's using Linear layers, it needs a flat input
         y1f, ps = pack( [y1], 'b *' )
         y2f, ps = pack( [y2], 'b *' )
         if y1f.shape[-1] != self.flat_latent_dim and self.show_trunc_notice :
@@ -183,7 +187,7 @@ class VICRegLoss(nn.Module):
         z1 = self.projector(y1f[..., :maxdim])
         z2 = self.projector(y2f[..., :maxdim])
 
-        # now let's 'unflatten' the flattened embeddings back into a shape more similar to y?
+        # If we had flattened for the Projector, we need to unflatten. TODO: make this more general
         [z1] = unpack(z1, ps, 'b *')
         [z2] = unpack(z2, ps, 'b *')
 
@@ -200,7 +204,7 @@ class VICRegLoss(nn.Module):
             else:
                 print("WARNING: self.parallel=True but dist.is_initialized=False. No distributed gather will occur")
 
-        z1 = z1 - z1.mean(dim=0)
+        z1 = z1 - z1.mean(dim=0) # zero-mean across batches. b/c Facebook does it
         z2 = z2 - z2.mean(dim=0)
 
         var_loss = self.var_weight * 0.5 * ( vicreg_var_loss(z1, gamma=self.gamma, eps=self.eps) + vicreg_var_loss(z1, gamma=self.gamma, eps=self.eps) ) 
