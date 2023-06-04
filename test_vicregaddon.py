@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+
+"""
+This is a pretty bare-bones testing script.  It deliberately doesn't make use 
+of any accelerate or Lighthing functions. 
+...and I don't actually know how to launch a job with *just* torch.dist, so 
+parallel testing will will occur in "examples/"
+"""
+
 import torch
 from vicregaddon import *
 import argparse
