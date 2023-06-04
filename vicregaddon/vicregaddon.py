@@ -1,6 +1,6 @@
 import torch 
 import torch.nn as nn
-import pytorch_lightning as pl
+import torch.distributed as dist
 
 # 4 parts to this file: 
 #   1. "data splitter" routines
