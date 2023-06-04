@@ -1,6 +1,7 @@
 import torch 
 import torch.nn as nn
 import torch.distributed as dist
+from tensordict.tensordict import TensorDict
 
 # 4 parts to this file: 
 #   1. "data splitter" routines

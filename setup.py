@@ -10,6 +10,7 @@ setup(
     install_requires=[
         'torch',
         'torchaudio',
+        'tensordict,'
         'numpy',
         'aeiou',
         'pytorch-lightning'
