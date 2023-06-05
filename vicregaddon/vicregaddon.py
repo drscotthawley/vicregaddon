@@ -157,7 +157,7 @@ class VICRegLoss(nn.Module):
                 parallel=True, 
                 projector=None,  # projector model, e.g. multi-layer MLP. will fall back to default setup (see VICRegProjector, above) if None
                 # these next two are only applicable if projector is None;
-                flat_latent_dim=32*256, # = 8192, but doesn't have to match projector_mlp
+                flat_latent_dim=32768, #32*256, # = 8192, but doesn't have to match projector_mlp
                 projector_mlp="8192-8192-8192", # dims of projector layers. Using string API b/c that's what Meta did, and if it's good enough for Yann,...
                 debug=False,
                  ) -> None:
@@ -172,14 +172,13 @@ class VICRegLoss(nn.Module):
 
     def forward(self, inputs:TensorDict) -> TensorDict:
         "this does not operate on audio, but rather on the latent encodings y"
-        print()
         y1, y2 = inputs['latent'], inputs['latent2'] # TODO: not married to these names
 
         # prep for Projector.  If it's using Linear layers, it needs a flat input
         y1f, ps = pack( [y1], 'b *' )
         y2f, ps = pack( [y2], 'b *' )
         if y1f.shape[-1] != self.flat_latent_dim and self.show_trunc_notice :
-                print(f"Expected y1.flatten() to have shape {self.flat_latent_dim}, but got {y1f.shape}.  Truncating to fit. Suppressing further notices.")  
+                print(f"Expected y1.flatten().shape[-1] to be {self.flat_latent_dim}, but got y1f.shape = {y1f.shape}.  Truncating to fit. Suppressing further notices.")  
                 self.show_trunc_notice = False 
         maxdim = max( y1f.shape[-1] , self.flat_latent_dim )
 
@@ -188,9 +187,14 @@ class VICRegLoss(nn.Module):
         z2 = self.projector(y2f[..., :maxdim])
 
         # If we had flattened for the Projector, we need to unflatten. TODO: make this more general
-        [z1] = unpack(z1, ps, 'b *')
-        [z2] = unpack(z2, ps, 'b *')
-
+        #[z1] = unpack(z1, ps, 'b *')  # this assumes we're in the same dimensionality as the y space
+        #[z2] = unpack(z2, ps, 'b *')
+        z1 = z1.view( (y1.shape[0],y1.shape[1],-1) )
+        z2 = z2.view( (y2.shape[0],y2.shape[1],-1) )
+        # or...
+        #z1 = z1.view( (y1.shape[0],-1, y1.shape[2]) )
+        #z2 = z2.view( (y2.shape[0],-1, y2.shape[2] )        
+        
         if self.parallel: # TODO: could detect this automatically, e.g. using os.getenv['WORLD_SIZE']
             if not dist.is_available():
                 raise ValueError(
