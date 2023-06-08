@@ -221,10 +221,10 @@ class VICRegLoss(nn.Module):
                 "vicreg_var_loss": var_loss,
                 "vicreg_inv_loss": inv_loss,
                 "vicreg_cov_loss": cov_loss,
-                "vicreg_loss": self.weight * loss
+                "vicreg_loss": loss
             },
         )
-        inputs.update({"vicreg_loss": loss})
+        inputs.update({"vicreg_loss": self.weight * loss})
         return inputs
     
 
