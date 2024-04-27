@@ -2,7 +2,9 @@
 
 > *"vicreg add-on" (can be jokingly pronounced like "Armageddon" for those so inclined)*
 
-A lightweight and modular parallel PyTorch implementation of VICReg (intended for audio)
+A lightweight and modular parallel PyTorch implementation of [VICReg](https://github.com/facebookresearch/vicreg). 
+
+(I intend this for audio, but could be used for other things)
 
 ## Usage:
 ```
