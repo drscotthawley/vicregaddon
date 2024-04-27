@@ -1,6 +1,6 @@
 # vicregaddon
 
-> *"vicreg add-on" (can be jokingly pronounced a bit like "Armageddon" for those so inclined)*
+> *"vicreg add-on".  As in "Yeah, but are you getting it? vicregaddon it"*
 
 A lightweight and modular parallel PyTorch implementation of [VICReg](https://github.com/facebookresearch/vicreg). 
 
