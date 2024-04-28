@@ -6,8 +6,15 @@ A lightweight and modular parallel PyTorch implementation of [VICReg](https://gi
 
 (I intend this for audio, but could be used for other things)
 
-## Usage:
+## Installation: 
+
+```bash
+pip install vicregaddon
 ```
+
+
+## Usage:
+```python
 from vicregaddon import *
 ```
 
