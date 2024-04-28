@@ -214,7 +214,7 @@ class VICRegLoss(nn.Module):
         var_loss = self.var_weight * 0.5 * ( vicreg_var_loss(z1, gamma=self.gamma, eps=self.eps) + vicreg_var_loss(z1, gamma=self.gamma, eps=self.eps) ) 
         inv_loss = self.inv_weight * vicreg_inv_loss(z1, z2)
         cov_loss = self.cov_weight * 0.5 * ( vicreg_cov_loss(z1) + vicreg_cov_loss(z2) )
-        loss = var_loss + inv_loss + cov_loss
+        loss = self.weight * ( var_loss + inv_loss + cov_loss )
         inputs = accumulate_value(
             inputs,
             {
@@ -224,7 +224,7 @@ class VICRegLoss(nn.Module):
                 "vicreg_loss": loss
             },
         )
-        inputs.update({"vicreg_loss": self.weight * loss})
+        #inputs.update({"vicreg_loss": loss})
         return inputs
     
 
