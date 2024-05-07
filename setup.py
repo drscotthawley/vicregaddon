@@ -5,7 +5,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='vicregaddon',
-    version='0.0.3',
+    version='0.0.4',
     url = 'https://github.com/drscotthawley/vicregaddon',
     license='MIT',
     author='Scott H. Hawley',

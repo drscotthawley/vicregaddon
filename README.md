@@ -11,6 +11,10 @@ A lightweight and modular parallel PyTorch implementation of [VICReg](https://gi
 ```bash
 pip install vicregaddon
 ```
+or, for the most recent version
+```
+pip install git+https://github.com/drscotthawley/vicregaddon.git
+```
 
 
 ## Usage:

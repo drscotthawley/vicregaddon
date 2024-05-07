@@ -139,9 +139,11 @@ def off_diagonal(x:torch.Tensor):
 
 def vicreg_cov_loss(z:torch.Tensor):
     "Covariance loss for VICReg. the sum of the off-diagaonal terms of the covariance matrix"
-    num_features = z.shape[1]*z.shape[2]  
-    cov_z = torch.cov(rearrange(z, 'b c t -> ( c t ) b'))   
+    num_features = torch.prod(torch.tensor(z.shape[1:]))
+    z_batch_last = z.view(z.shape[0],-1).T # flatten all but batch dim, .T puts batch dim last for cov
+    cov_z = torch.cov(z_batch_last)     
     return off_diagonal(cov_z).pow_(2).sum().div(num_features)
+
 
 
 # now a full class that does a lot of things for you
